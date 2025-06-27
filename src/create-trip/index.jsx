@@ -204,7 +204,7 @@ function CreateTrip() {
           <DialogContent>
             <DialogHeader>
               <DialogDescription className="text-center">
-                <img src="logo.png" alt="logo" className="mx-auto"/>
+      <img src='freepik-doodle-linear-trippod-online-price-comparison-logo-20250610182827AL7i.png' alt="Logo" className='h-[50px] w-[250px] object-cover'/>
                 <h2 className='font-bold text-lg mt-7'>Sign In with Google</h2>
                 <p>Sign in to the app with Google Authentication</p>
                 <button 
