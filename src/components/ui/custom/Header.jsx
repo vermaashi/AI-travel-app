@@ -57,7 +57,9 @@ function Header() {
 
   return (
     <div className='p-3 shadow-sm flex justify-between items-center px-5'>
-      <img src='freepik-doodle-linear-trippod-online-price-comparison-logo-20250610182827AL7i.png' alt="Logo" className='h-[50px] w-[250px] object-cover'/>
+      <a href="/">
+        <img src='freepik-doodle-linear-trippod-online-price-comparison-logo-20250610182827AL7i.png' alt="Logo" className='h-[50px] w-[250px] object-cover'/>
+      </a>
       <div>
         {user ? (
           <div className='flex items-center gap-3'>
