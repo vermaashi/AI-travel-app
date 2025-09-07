@@ -12,24 +12,21 @@ function PlacesToVisit({ trip }) {
   });
 
   return (
-    <div className='mt-5'>
-      <h2 className='font-bold text-xl mb-4'>Places To Visit</h2>
-      <div className='grid grid-cols-2 gap-5'>
+    <div className="mt-12">
+      <h2 className="text-2xl font-bold text-white mb-6">Daily Itinerary</h2>
+      <div className="space-y-8">
         {sortedDays.map((dayKey, index) => {
           const dayData = itinerary[dayKey];
           return (
-            <div key={index} className='mb-6 '>
-              <h3 className='text-lg font-semibold mb-2'>Day {index + 1}</h3>
-              <ul className='list-disc ml-5'>
+            <div key={index} className="bg-gray-800/70 backdrop-blur-md rounded-2xl shadow-md overflow-hidden border border-gray-700">
+              <div className="bg-gradient-to-r from-orange-500 to-[#f56551] p-4 text-white">
+                <h3 className="text-xl font-semibold">Day {index + 1}</h3>
+              </div>
+              <div className="p-6 grid grid-cols-1 gap-4">
                 {dayData.places.map((place, i) => (
-                  <li key={i} className='mb-1'>
-                    <span className='font-medium'></span>{place.timeTravel}
-                    <div className='my-3  '>
-                      <PlaceCardItems place={place} />
-                    </div>
-                  </li>
+                  <PlaceCardItems key={i} place={place} />
                 ))}
-              </ul>
+              </div>
             </div>
           );
         })}

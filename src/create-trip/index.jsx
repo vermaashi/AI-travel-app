@@ -9,20 +9,39 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { FcGoogle } from 'react-icons/fc';
 import { useGoogleLogin } from '@react-oauth/google';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/Service/firebaseConfig';
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { useNavigate } from 'react-router';
+import { 
+  AiOutlineLoading3Quarters, 
+  AiOutlineCalendar, 
+  AiOutlineTeam, 
+  AiOutlineDollar,
+  AiOutlineArrowLeft,
+  AiOutlineArrowRight
+} from "react-icons/ai";
+import { IoLocationOutline } from "react-icons/io5";
+import { motion, AnimatePresence } from 'framer-motion';
+import logo from '../assets/a.svg';
 
 function CreateTrip() {
   const [place, setPlace] = useState(null);
   const [formData, setFormData] = useState({});
   const [openDialog, setOpenDialog] = useState(false);
-  const [loading,setLoading]= useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [activeStep, setActiveStep] = useState(0);
+  
+  const steps = [
+    { title: "Destination", icon: <IoLocationOutline />, key: 'location' },
+    { title: "Duration", icon: <AiOutlineCalendar />, key: 'noOfDays' },
+    { title: "Budget", icon: <AiOutlineDollar />, key: 'budget' },
+    { title: "Travelers", icon: <AiOutlineTeam />, key: 'traveler' }
+  ];
 
   const handleInputChange = (name, value) => {
     setFormData((prevData) => ({
@@ -46,13 +65,15 @@ function CreateTrip() {
       setOpenDialog(true);
       return;
     }
-    if (!formData?.noOfDays || !formData?.traveler || !formData?.location || !formData?.budget) {
-      toast("Please fill all details.");
+    
+    // Validate all required fields
+    const missingFields = steps.filter(step => !formData[step.key]);
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in: ${missingFields.map(f => f.title).join(', ')}`);
       return;
     }
 
     const FINAL_PROMPT = AI_PROMPT
-      
       .replace('[PLACE]', formData.location)
       .replace('{location}', formData?.location?.label)
       .replace('{totalDays}', formData?.noOfDays)
@@ -60,17 +81,14 @@ function CreateTrip() {
       .replace('{budget}', formData?.budget)
       .replace('{totalDays}', formData?.noOfDays)
 
-    // console.log(FINAL_PROMPT);
-    // const result= await chatSession.sendMessage(FINAL_PROMPT);
-    // console.log('--',result?.response?.text());
     try {
       setLoading(true);
       const result = await chatSession.sendMessage(FINAL_PROMPT);
-      console.log("--",result?.response?.text());
       SaveAiTrip(result?.response?.text())
     } catch (error) {
       setLoading(false)
       console.error("AI trip generation failed:", error);
+      toast.error("Failed to generate trip. Please try again.");
     }
   };
 
@@ -87,18 +105,14 @@ function CreateTrip() {
       });
       toast.success("AI Trip saved successfully!");
       navigate('/view-trip/'+DocId)
- 
     } catch (error) {
       console.error("Error saving AI trip:", error);
       toast.error("Failed to save trip. Please check Firestore rules.");
+    } finally {
+      setLoading(false);
     }
-  finally{
-    setLoading(false);
-  }
-    
   };
 
-  
   const GetUserProfile = async (tokenInfo) => {
     try {
       const response = await axios.get(
@@ -110,114 +124,341 @@ function CreateTrip() {
           },
         }
       );
-      console.log(response.data);
       localStorage.setItem('user', JSON.stringify(response.data));
       setOpenDialog(false);
       await OnGenerateTrip();
     } catch (error) {
       console.error("Error fetching Google profile:", error);
+      toast.error("Failed to sign in. Please try again.");
     }
   };
 
+  const nextStep = () => {
+    // Validate current step before proceeding
+    if (!formData[steps[activeStep].key]) {
+      toast.error(`Please select a ${steps[activeStep].title.toLowerCase()}`);
+      return;
+    }
+    
+    if (activeStep < steps.length - 1) {
+      setActiveStep(activeStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (activeStep > 0) {
+      setActiveStep(activeStep - 1);
+    }
+  };
+
+  // Animation variants for step transitions
+  const stepVariants = {
+    enter: (direction) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0
+    }),
+    center: {
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction) => ({
+      x: direction < 0 ? 300 : -300,
+      opacity: 0
+    })
+  };
+
   return (
-    <div className='pl-20 sm:px-10 md:px-32 lg:px-56 xl:px-10 px-5 mt-15'>
-      <h2 className='pl-20 font-bold text-3xl'>Tell us your travel preferences 🏕️🌴</h2>
-      <p className='pl-20 mt-5 text-gray-500 text-xl'>
-        Just provide some basic information, and our trip planner will generate a customized itinerary based on your preference.
-      </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black py-8 px-4 sm:px-6 lg:px-8">
+      
+      <div className="max-w-4xl mx-auto bg-gradient-to-br from-gray-900 to-black rounded-2xl shadow-xl overflow-hidden">
+        {/* Header Section */}
 
-      <div className='pl-20 mt-20 flex flex-col gap-10'>
-        <h2 className='text-xl font-medium'>What is the Destination of Choice?</h2>
-        <GooglePlacesAutocomplete
-          apiKey={import.meta.env.VITE_GOOGLE_PLACE_API_KEY}
-          selectProps={{
-            value: place,
-            onChange: (v) => {
-              setPlace(v);
-              handleInputChange('location', v);
-            },
-          }}
-        />
-
-        <div>
-          <h2 className='text-xl my-3 font-medium'>How many days are you planning your trip?</h2>
-          <input
-            placeholder="ex. 3"
-            type='number'
-            className="border p-2 rounded-lg w-full"
-            onChange={(e) => handleInputChange('noOfDays', e.target.value)}
-          />
-        </div>
-
-        <div>
-          <h2 className='text-xl my-3 font-medium'>What is your budget?</h2>
-          <h3>The budget is exclusively allocated for activities and dining purposes.</h3>
-          <div className='grid grid-cols-3 gap-5 mt-5 cursor-pointer'>
-            {SelectBudgetOptions.map((item, index) => (
-              <div
-                key={index}
-                onClick={() => handleInputChange('budget', item.title)}
-                className={`p-4 border rounded-lg hover:shadow-2xl ${
-                  formData?.budget === item.title && 'shadow-lg border-black'
-                }`}
-              >
-                <h2 className='text-4xl'>{item.icon}</h2>
-                <h3 className="font-bold text-lg">{item.title}</h3>
-                <p className="text-gray-500 text-sm">{item.desc}</p>
-              </div>
-            ))}
+        <div className="bg-gradient-to-r from-emerald-600 to-cyan-700 text-white p-8 relative overflow-hidden">
+  
+          <div className="absolute inset-0 bg-white opacity-5"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Plan Your Perfect Trip</h1>
+            <p className="text-emerald-100 text-lg">
+              Share your travel preferences, and our AI will craft a personalized itinerary just for you
+            </p>
           </div>
         </div>
 
-        <div>
-          <h2 className='text-xl my-3 font-medium'>Who do you plan on traveling with?</h2>
-          <div className='grid grid-cols-3 gap-5 mt-5 cursor-pointer'>
-            {selectTravelesList.map((item, index) => (
-              <div
-                key={index}
-                onClick={() => handleInputChange('traveler', item.people)}
-                className={`p-4 border rounded-lg hover:shadow-2xl ${
-                  formData?.traveler === item.people && 'shadow-lg border-black'
-                }`}
-              >
-                <h2 className='text-4xl'>{item.icon}</h2>
-                <h3 className="font-bold text-lg">{item.title}</h3>
-                <p className="text-gray-500 text-sm">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className='my-1 justify-end flex'>
-          <button 
-           disabled={loading} 
-          onClick={OnGenerateTrip} className="px-5 py-2 bg-blue-500 text-white rounded-lg">
-         
-          {loading?
-          <AiOutlineLoading3Quarters className='h-7 w-7 animate-spin' />:'Generate Trip'
-
-          }
-          </button>
-        </div>
-
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogDescription className="text-center">
-                <img src='freepik-doodle-linear-trippod-online-price-comparison-logo-20250610182827AL7i.png' alt="Logo" className='h-[50px] w-[250px] object-cover'/>
-                <h2 className='font-bold text-lg mt-7'>Sign In with Google</h2>
-                <p>Sign in to the app with Google Authentication</p>
-                <button 
-                  onClick={login}
-                  className='w-full mt-5 flex gap-4 items-center p-2 border rounded-lg'
+        {/* Progress Steps */}
+        <div className="px-8 pt-8">
+          <div className="flex justify-between mb-8 relative">
+            <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-gray-200 transform -translate-y-1/2 -z-10"></div>
+            {steps.map((step, index) => (
+              <div key={index} className="flex flex-col items-center relative">
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                    index <= activeStep
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg'
+                      : index === activeStep
+                      ? 'border-emerald-600 bg-white text-emerald-600'
+                      : 'bg-gray-100 border-gray-300 text-gray-500'
+                  }`}
                 >
-                  <FcGoogle className='h-7 w-7'/>Sign In with Google
+                  {step.icon}
+                </div>
+                <span
+                  className={`mt-3 text-sm font-medium ${
+                    index <= activeStep ? 'text-emerald-600' : 'text-gray-500'
+                  }`}
+                >
+                  {step.title}
+                </span>
+                {index <= activeStep && (
+                  <div className="absolute -bottom-8 w-32 text-center">
+                    <span className="text-xs text-emerald-600 font-medium">
+                      {formData[step.key] ? '✓ Completed' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <section
+          className="relative bg-cover bg-center"
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-10"
+            style={{
+              backgroundImage:
+                "url('https://res.cloudinary.com/depv6uo3x/image/upload/v1757258857/download_hjtgz5.jpg')",
+            }}
+          ></div>
+          <div className="px-8 pb-10 pt-6 relative z-10">
+            <AnimatePresence custom={activeStep} mode="wait">
+              <motion.div
+                key={activeStep}
+                custom={activeStep}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="space-y-6"
+              >
+                {/* Destination Step */}
+                {activeStep === 0 && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-semibold text-white">Where would you like to go?</h2>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-400">Destination</label>
+                      <GooglePlacesAutocomplete
+                        apiKey={import.meta.env.VITE_GOOGLE_PLACE_API_KEY}
+                        selectProps={{
+                          value: place,
+                          onChange: (v) => {
+                            setPlace(v);
+                            handleInputChange('location', v);
+                          },
+                          placeholder: "Search for a destination...",
+                          className: "w-full",
+                          styles: {
+                            control: (provided) => ({
+                              ...provided,
+                              padding: '0.75rem',
+                              borderRadius: '0.75rem',
+                              border: '2px solid #e5e7eb',
+                              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                              '&:hover': {
+                                borderColor: '#10b981'
+                              },
+                              '&:focus-within': {
+                                borderColor: '#10b981',
+                                boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
+                              }
+                            }),
+                            option: (provided, state) => ({
+                              ...provided,
+                              backgroundColor: state.isSelected ? '#10b981' : state.isFocused ? '#ecfdf5' : 'white',
+                              color: state.isSelected ? 'white' : '#1f2937',
+                              '&:active': {
+                                backgroundColor: '#10b981',
+                                color: 'white'
+                              }
+                            })
+                          }
+                        }}
+                      />
+                    </div>
+                    {formData.location && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-emerald-50 rounded-lg border border-emerald-200"
+                      >
+                        <p className="text-emerald-700 font-medium">Selected: {formData.location.label}</p>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Duration Step */}
+                {activeStep === 1 && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-semibold text-white">How many days will your trip be?</h2>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-400">Trip Duration (days)</label>
+                      <input
+                        placeholder="e.g., 5"
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={formData.noOfDays || ''}
+                        className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-lg text-white placeholder-white bg-transparent"
+                        onChange={(e) => handleInputChange('noOfDays', e.target.value)}
+                      />
+                    </div>
+                    {formData.noOfDays && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-emerald-50 rounded-lg border border-emerald-200"
+                      >
+                        <p className="text-emerald-700 font-medium">{formData.noOfDays} day{formData.noOfDays > 1 ? 's' : ''} selected</p>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Budget Step */}
+                {activeStep === 2 && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-semibold text-white">What's your budget?</h2>
+                    <p className="text-gray-400">The budget is exclusively allocated for activities and dining purposes.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      {SelectBudgetOptions.map((item, index) => (
+                        <motion.div
+                          key={index}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleInputChange('budget', item.title)}
+                          className={`p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            formData?.budget === item.title
+                              ? 'border-emerald-500 bg-emerald-900/30 shadow-md' // ✅ highlighted state (emerald tint)
+                              : 'border-gray-700 bg-gray-800 hover:border-emerald-600 hover:shadow-md' // ✅ dark mode base
+                          }`}
+                        >
+                          <div className="text-3xl mb-3 text-emerald-400">{item.icon}</div>
+                          <h3 className="font-semibold text-gray-100">{item.title}</h3>
+                          <p className="text-gray-400 text-sm mt-2">{item.desc}</p>
+                        </motion.div>
+
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Travelers Step */}
+                {activeStep === 3 && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-semibold text-white">Who are you traveling with?</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      {selectTravelesList.map((item, index) => (
+                        <motion.div
+                          key={index}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleInputChange('traveler', item.people)}
+                          className={`p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            formData?.traveler === item.people
+                              ? 'border-emerald-500 bg-emerald-900/30 shadow-md' 
+                              : 'border-gray-700 bg-gray-800 hover:border-emerald-600 hover:shadow-md'
+                          }`} 
+                        >
+                          <div className="text-3xl mb-3 text-emerald-400">{item.icon}</div>
+                          <h3 className="font-semibold text-gray-100">{item.title}</h3>
+                          <p className="text-gray-400 text-sm mt-2">{item.desc}</p>
+                        </motion.div>
+                      ))}
+
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between mt-10">
+              <button
+                onClick={prevStep}
+                disabled={activeStep === 0}
+                className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 ${
+                  activeStep === 0
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <AiOutlineArrowLeft className="h-5 w-5" />
+                Back
+              </button>
+
+              {activeStep < steps.length - 1 ? (
+                <button
+                  onClick={nextStep}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition flex items-center gap-2"
+                >
+                  Next
+                  <AiOutlineArrowRight className="h-5 w-5" />
                 </button>
-              </DialogDescription>  
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={loading}
+                  onClick={OnGenerateTrip}
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-xl font-medium hover:from-emerald-700 hover:to-cyan-700 transition flex items-center justify-center gap-2 shadow-lg"
+                >
+                  {loading ? (
+                    <>
+                      <AiOutlineLoading3Quarters className="h-5 w-5 animate-spin" />
+                      Generating Your Trip...
+                    </>
+                  ) : (
+                    'Generate My Trip'
+                  )}
+                </motion.button>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
+
+      {/* Sign In Dialog */}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-semibold">Sign In Required</DialogTitle>
+            <DialogDescription className="text-center mt-4">
+              <div className="flex justify-center mb-6">
+                <img
+                  src={logo}
+                  alt="Logo"
+                  className="h-12 object-contain"
+                />
+              </div>
+              <p className="text-gray-600 mb-6">
+                Sign in with Google to save and generate your personalized trip itinerary
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={login}
+                className="w-full flex items-center justify-center gap-3 p-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition shadow-sm"
+              >
+                <FcGoogle className="h-6 w-6" />
+                <span className="font-medium text-gray-700">Sign In with Google</span>
+              </motion.button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

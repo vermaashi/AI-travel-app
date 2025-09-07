@@ -1,25 +1,21 @@
-import { StrictMode } from 'react'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.jsx'
 import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router-dom'
 import CreateTrip from './create-trip/index.jsx'
 import Header from './components/ui/custom/Header.jsx'
-// import Hero from './components/ui/custom/Hero.jsx'
 import { Toaster } from './components/ui/sonner.jsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import Viewtrip from './view-trip/[tripId]'
 import MyTrips from './my-trips'
+import Hero from './components/ui/custom/Hero'
 
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <App />, 
-
+    element: <Hero/>, 
   },
   {
     path: '/create-trip',
@@ -31,19 +27,17 @@ const router = createBrowserRouter([
   },
   {
     path:'/my-trips',
-    element: <MyTrips/>, // Assuming you want to show the same component for 'my-trips'
+    element: <MyTrips/>,
   }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    {/* <Hero/> */}
+  <div>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_AUTH_CLIENT_ID}>
     <Header />
     <Toaster/>
     <RouterProvider router = {router}/>
-    </GoogleOAuthProvider>;
-    {/* <App /> */}
-  </React.StrictMode>,
+    </GoogleOAuthProvider>
+  </div>
 )
   
