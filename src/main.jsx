@@ -3,25 +3,23 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-
-// Import all your page components
 import CreateTrip from './create-trip/index.jsx';
 import Viewtrip from './view-trip/[tripId]';
 import MyTrips from './my-trips';
 import Hero from './components/ui/custom/Hero';
-import RootLayout from './RootLayout.jsx'; // 👈 Import the new layout component
+import RootLayout from './RootLayout.jsx'; 
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <RootLayout />, // 👈 Use the RootLayout here
+    element: <RootLayout />, 
     children: [
       {
-        index: true, // This makes <Hero /> the default component for the '/' path
+        index: true, 
         element: <Hero />,
       },
       {
-        path: 'create-trip', // The path is relative to the parent path ('/')
+        path: 'create-trip', 
         element: <CreateTrip />,
       },
       {
