@@ -17,6 +17,8 @@ import {
 import { FcGoogle } from 'react-icons/fc';
 import { FiLogOut, FiPlus, FiBriefcase } from 'react-icons/fi';
 import logo from '../../../assets/a.svg';
+import { Link } from 'react-router-dom'; 
+
 
 // Reusable Google Login Component
 const GoogleLoginDialog = ({ open, onOpenChange, onSuccess }) => {
@@ -33,7 +35,7 @@ const GoogleLoginDialog = ({ open, onOpenChange, onSuccess }) => {
         </div>
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white">
-            Welcome to TravelAI
+            Welcome to Travel AI
           </DialogTitle>
           <DialogDescription className="text-gray-300 mt-2">
             Sign in to create and manage your personalized travel itineraries
@@ -76,7 +78,7 @@ const GoogleLoginDialog = ({ open, onOpenChange, onSuccess }) => {
               </div>
               <p className="text-xs text-gray-300 mt-2">Access Anywhere</p>
             </div>
-          </div>
+          </div> 
         </div>
       </DialogContent>
     </Dialog>
@@ -90,7 +92,7 @@ function Header() {
     } catch {
       return null;
     }
-  });
+  });      
   const [openDialog, setOpenDialog] = useState(false);
 
   useEffect(() => {
@@ -126,25 +128,26 @@ function Header() {
   return (
     <div className='bg-gradient-to-r from-gray-900 to-black p-4 shadow-lg border-b border-orange-500/20'>
       <div className='max-w-7xl mx-auto flex justify-between items-center'>
-        <a href="/" className="flex items-center group">
-          <img src={logo} alt="Logo" className="h-12 transition-transform group-hover:scale-110 "/>
-        </a>
+        {/* <a href="/" className="flex items-center group"> */}
+        <Link to="/" className="flex items-center group">
+          <img src={logo} alt="Logo" className="h-12 transition-transform group-hover:scale-110 "/></Link>
+        {/* </a> */}
         
         <div>
           {user ? (
             <div className='flex items-center gap-4'>
-              <a href="/create-trip">
+              <Link  to="/create-trip">
                 <Button className="rounded-full bg-gradient-to-r from-orange-500 to-[#f56551] hover:from-orange-600 hover:to-[#e05541] text-white px-5 py-2 font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl shadow-orange-500/30 flex items-center gap-2">
                   <FiPlus className="h-4 w-4" />
                   Create Trip
                 </Button>
-              </a>
-              <a href="/my-trips">
+              </Link>
+              <Link to="/my-trips">
                 <Button variant="outline" className='rounded-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-5 py-2 font-medium transition-all duration-300 flex items-center gap-2'>
                   <FiBriefcase className="h-4 w-4" />
                   My Trips
                 </Button>
-              </a>
+              </Link>
               
               <Popover>
                 <PopoverTrigger className="focus:outline-none">
